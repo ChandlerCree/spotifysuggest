@@ -1,8 +1,17 @@
 # Can you help me to create a script that will suggest a list of 10 songs based on the music I have listened to in the past on spotify?
 
+import sys
+print(f"Python version: {sys.version}")
+print(f"Python path: {sys.executable}")
+
+import os
+print(f"Current working directory: {os.getcwd()}")
+print("Environment variables:")
+for key, value in os.environ.items():
+    print(f"{key}: {'*' * len(value) if 'SECRET' in key else value}")
+
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
-import os
 from datetime import datetime
 from dotenv import load_dotenv
 import openai
