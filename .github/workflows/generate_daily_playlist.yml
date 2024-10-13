@@ -22,12 +22,29 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
     
+    - name: Debug environment
+      run: |
+        echo "Current directory: $(pwd)"
+        echo "Directory contents:"
+        ls -la
+        echo "Python version:"
+        python --version
+        echo "Python path:"
+        which python
+        echo "suggest_spotify.py contents:"
+        cat suggest_spotify.py
+    
     - name: Run Spotify recommendation script
       env:
         SPOTIFY_CLIENT_ID: ${{ secrets.SPOTIFY_CLIENT_ID }}
         SPOTIFY_CLIENT_SECRET: ${{ secrets.SPOTIFY_CLIENT_SECRET }}
+        SPOTIFY_REDIRECT_URI: 'http://localhost:8888/callback'
         OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-      run: python suggest_spotify.py
+      run: |
+        echo "SPOTIFY_CLIENT_ID: $SPOTIFY_CLIENT_ID"
+        echo "SPOTIFY_CLIENT_SECRET: ${SPOTIFY_CLIENT_SECRET:0:5}..."
+        echo "SPOTIFY_REDIRECT_URI: $SPOTIFY_REDIRECT_URI"
+        python -v suggest_spotify.py
     
     - name: Commit and push if changes
       run: |
