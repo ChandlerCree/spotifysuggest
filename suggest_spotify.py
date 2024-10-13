@@ -5,6 +5,10 @@ from spotipy.oauth2 import SpotifyOAuth
 import os
 from datetime import datetime
 from dotenv import load_dotenv
+import openai
+from openai import OpenAI
+import time
+import sys
 
 load_dotenv()
 
@@ -61,6 +65,47 @@ def get_recommendations(sp, top_tracks, top_artists, liked_songs):
 
     return final_recommendations
 
+def create_top_songs_dict(top_tracks, recently_played, top_artists, recommendations):
+    return {
+        'top_tracks': [f"{track['name']} : {track['artists'][0]['name']}" for track in top_tracks['items'][:10]],
+        'top_artists': [artist['name'] for artist in top_artists['items'][:10]],
+        'recently_played': [f"{track['track']['name']} : {track['track']['artists'][0]['name']}" for track in recently_played['items'][:10]],
+        'recommendations': recommendations
+    }
+
+def get_chatbot_analysis(top_songs):
+    client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+    
+    prompt = f"""
+    Based on the following user's Spotify data, analyze their music preferences and the recommended songs:
+
+    Top Tracks:
+    {', '.join(top_songs['top_tracks'][:5])}
+
+    Recently Played:
+    {', '.join(top_songs['recently_played'][:5])}
+
+    Top Artists:
+    {', '.join(top_songs['top_artists'][:5])}
+
+    Recommended Songs:
+    {', '.join([rec['name'] for rec in top_songs['recommendations'][:5]])}
+
+    Please provide:
+    A brief description of what the playlist is about, and what the recommended songs have in common and why they might appeal to the user.
+    Keep the response concise and human-like, around 30-50 words.
+    """
+
+    response = client.chat.completions.create(
+        model="gpt-3.5-turbo",
+        messages=[
+            {"role": "system", "content": "You are a music analyst specializing in Spotify data interpretation."},
+            {"role": "user", "content": prompt}
+        ]
+    )
+
+    return response.choices[0].message.content
+
 def get_user_liked_songs(sp):
     liked_songs = []
     results = sp.current_user_saved_tracks()
@@ -78,39 +123,26 @@ def get_user_liked_songs(sp):
             results = None
     return liked_songs
 
-def create_playlist(sp, recommendations):
-    # Get the user's Spotify username
-    username = sp.current_user()['id']
-    
-    # Create a new playlist
-    current_date = datetime.now().strftime("%m-%d-%y")
-    playlist_name = f'Daily Recommendations {current_date}'
-    playlist = sp.user_playlist_create(username, playlist_name, public=False)
-    
-    # Add tracks to the playlist
-    track_uris = [rec['track_link'].replace('spotify:track:', '') for rec in recommendations]
-    sp.user_playlist_add_tracks(username, playlist['id'], track_uris)
-    
-    return playlist['external_urls']['spotify']
-
 def gen_output_file_name():
-    # Generate filename with current date
     current_date = datetime.now().strftime("%m-%d-%y")
     filename = f'Spotify Recs - {current_date}.md'
     
-    # Specify the directory path
-    directory = '/Users/ccree/Documents/IRALOGIX/Obsidian/IRALogix/Personal Notes/Spotify Suggestions'
+    if 'GITHUB_WORKSPACE' in os.environ:
+        # We're running in GitHub Actions
+        directory = os.path.join(os.environ['GITHUB_WORKSPACE'], 'DailyRecsMarkdown')
+    else:
+        # We're running locally
+        directory = '/Users/ccree/Documents/IRALOGIX/Obsidian/IRALogix/Personal Notes/Spotify Suggestions'
 
-    # Ensure the directory exists
     os.makedirs(directory, exist_ok=True)
-    
-    # Create the full file path
-    file_path = os.path.join(directory, filename)
+    return os.path.join(directory, filename)
 
-    return file_path
+def write_file(top_songs, playlist_url, chatbot_analysis):
+    # Define the order of categories
+    category_order = ['recommendations', 'top_tracks', 'top_artists', 'recently_played']
 
+    file_path = gen_output_file_name()
 
-def write_file(top_songs, playlist_url, file_path, category_order):
     # Write to markdown file
     with open(file_path, 'w') as f:
         f.write("# Spotify Suggestions\n\n")
@@ -118,6 +150,10 @@ def write_file(top_songs, playlist_url, file_path, category_order):
         # Add the playlist link to the markdown file
         f.write(f"## Today's Playlist\n\n")
         f.write(f"[Click here to open today's playlist]({playlist_url})\n\n")
+        
+        # Add chatbot analysis
+        f.write("## Music Preference Analysis\n\n")
+        f.write(f"{chatbot_analysis}\n\n")
         
         for category in category_order:
             items = top_songs[category]
@@ -131,37 +167,70 @@ def write_file(top_songs, playlist_url, file_path, category_order):
 
     print(f"Spotify suggestions have been written to {file_path}")
     print(f"A new playlist has been created: {playlist_url}")
+
+def create_playlist(sp, recommendations, chatbot_analysis):
+    # Get the user's Spotify username
+    username = sp.current_user()['id']
     
+    # Create a new playlist
+    current_date = datetime.now().strftime("%m-%d-%y")
+    playlist_name = f'Daily Recommendations {current_date}'
+    playlist = sp.user_playlist_create(username, playlist_name, public=False)
+    
+    # Add tracks to the playlist
+    track_uris = [rec['track_link'].replace('spotify:track:', '') for rec in recommendations]
+    sp.user_playlist_add_tracks(username, playlist['id'], track_uris)
+    
+    # Try to update playlist description with chatbot analysis
+    try:
+        # Truncate the description if it's too long (Spotify has a 300 character limit)
+        truncated_analysis = chatbot_analysis[:297] + '...' if len(chatbot_analysis) > 300 else chatbot_analysis
+        sp.user_playlist_change_details(username, playlist['id'], description=truncated_analysis)
+    except spotipy.exceptions.SpotifyException as e:
+        print(f"Failed to update playlist description: {e}")
+        print("Continuing without setting the description.")
+    
+    # Add a retry mechanism for getting the playlist URL
+    max_retries = 5
+    retry_delay = 15
+    for attempt in range(max_retries):
+        try:
+            playlist_url = sp.playlist(playlist['id'])['external_urls']['spotify']
+            return playlist_url
+        except Exception as e:
+            if attempt < max_retries - 1:
+                print(f"Attempt {attempt + 1} to get playlist URL failed. Retrying in {retry_delay} seconds...")
+                time.sleep(retry_delay)
+            else:
+                raise Exception("Failed to get playlist URL after 5 attempts") from e
 
-def suggest_spotify():
-    # Get the user's top tracks
-    top_tracks, recently_played, top_artists = get_user_listen_history()
+def runner_suggest_spotify():
+    try:
+        # Get the user's top tracks
+        top_tracks, recently_played, top_artists = get_user_listen_history()
 
-    # Get the user's liked songs
-    liked_songs = get_user_liked_songs(sp)
+        # Get the user's liked songs
+        liked_songs = get_user_liked_songs(sp)
 
-    # Get recommendations based on top tracks and artists
-    recommendations = get_recommendations(sp, top_tracks, top_artists, liked_songs)
+        # Get recommendations based on top tracks and artists
+        recommendations = get_recommendations(sp, top_tracks, top_artists, liked_songs)
 
-    # Create a playlist with the recommendations
-    playlist_url = create_playlist(sp, recommendations)
+        # Create the top_songs dictionary using the new function
+        top_songs = create_top_songs_dict(top_tracks, recently_played, top_artists, recommendations)
 
-    top_songs = {
-        'top_tracks': [f"{track['name']} : {track['artists'][0]['name']}" for track in top_tracks['items'][:10]],
-        'top_artists': [artist['name'] for artist in top_artists['items'][:10]],
-        'recently_played': [f"{track['track']['name']} : {track['track']['artists'][0]['name']}" for track in recently_played['items'][:10]],
-        'recommendations': recommendations
-    }
+        # Get chatbot analysis
+        chatbot_analysis = get_chatbot_analysis(top_songs)
+        print(chatbot_analysis)
 
-    file_path = gen_output_file_name()
+        # Create a playlist with the recommendations and get chatbot analysis
+        
+        playlist_url = create_playlist(sp, recommendations, chatbot_analysis)
 
-    # Define the order of categories
-    category_order = ['recommendations', 'top_tracks', 'top_artists', 'recently_played']
-
-    write_file(top_songs, playlist_url, file_path, category_order)
-
-    print(f"Spotify suggestions have been written to {file_path}")
-    print(f"A new playlist has been created: {playlist_url}")
+        write_file(top_songs, playlist_url, chatbot_analysis)
+        print("Spotify recommendations generated successfully.")
+    except Exception as e:
+        print(f"An error occurred: {str(e)}")
+        sys.exit(1)
 
 if __name__ == "__main__":
-    suggest_spotify()
+    runner_suggest_spotify()
