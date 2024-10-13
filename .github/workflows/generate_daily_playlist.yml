@@ -8,6 +8,7 @@ on:
 jobs:
   generate-recommendations:
     runs-on: ubuntu-latest
+    environment: suggest_env
     steps:
     - uses: actions/checkout@v2
     
