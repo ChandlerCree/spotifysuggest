@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 import openai
 from openai import OpenAI
 import time
+import sys
 
 load_dotenv()
 
@@ -123,21 +124,18 @@ def get_user_liked_songs(sp):
     return liked_songs
 
 def gen_output_file_name():
-    # Generate filename with current date
     current_date = datetime.now().strftime("%m-%d-%y")
     filename = f'Spotify Recs - {current_date}.md'
     
-    # Specify the directory path
-    directory = '/Users/ccree/Documents/IRALOGIX/Obsidian/IRALogix/Personal Notes/Spotify Suggestions'
+    if 'GITHUB_WORKSPACE' in os.environ:
+        # We're running in GitHub Actions
+        directory = os.path.join(os.environ['GITHUB_WORKSPACE'], 'spotify_recommendations')
+    else:
+        # We're running locally
+        directory = '/Users/ccree/Documents/IRALOGIX/Obsidian/IRALogix/Personal Notes/Spotify Suggestions'
 
-    # Ensure the directory exists
     os.makedirs(directory, exist_ok=True)
-    
-    # Create the full file path
-    file_path = os.path.join(directory, filename)
-
-    return file_path
-
+    return os.path.join(directory, filename)
 
 def write_file(top_songs, playlist_url, chatbot_analysis):
     # Define the order of categories
@@ -207,29 +205,32 @@ def create_playlist(sp, recommendations, chatbot_analysis):
                 raise Exception("Failed to get playlist URL after 5 attempts") from e
 
 def runner_suggest_spotify():
-    # Get the user's top tracks
-    top_tracks, recently_played, top_artists = get_user_listen_history()
+    try:
+        # Get the user's top tracks
+        top_tracks, recently_played, top_artists = get_user_listen_history()
 
-    # Get the user's liked songs
-    liked_songs = get_user_liked_songs(sp)
+        # Get the user's liked songs
+        liked_songs = get_user_liked_songs(sp)
 
-    # Get recommendations based on top tracks and artists
-    recommendations = get_recommendations(sp, top_tracks, top_artists, liked_songs)
+        # Get recommendations based on top tracks and artists
+        recommendations = get_recommendations(sp, top_tracks, top_artists, liked_songs)
 
-    # Create the top_songs dictionary using the new function
-    top_songs = create_top_songs_dict(top_tracks, recently_played, top_artists, recommendations)
+        # Create the top_songs dictionary using the new function
+        top_songs = create_top_songs_dict(top_tracks, recently_played, top_artists, recommendations)
 
-    # Get chatbot analysis
-    chatbot_analysis = get_chatbot_analysis(top_songs)
-    print(chatbot_analysis)
+        # Get chatbot analysis
+        chatbot_analysis = get_chatbot_analysis(top_songs)
+        print(chatbot_analysis)
 
-    # Create a playlist with the recommendations and get chatbot analysis
-    
-    playlist_url = create_playlist(sp, recommendations, chatbot_analysis)
+        # Create a playlist with the recommendations and get chatbot analysis
+        
+        playlist_url = create_playlist(sp, recommendations, chatbot_analysis)
 
-    write_file(top_songs, playlist_url, chatbot_analysis)
-
-
+        write_file(top_songs, playlist_url, chatbot_analysis)
+        print("Spotify recommendations generated successfully.")
+    except Exception as e:
+        print(f"An error occurred: {str(e)}")
+        sys.exit(1)
 
 if __name__ == "__main__":
     runner_suggest_spotify()
