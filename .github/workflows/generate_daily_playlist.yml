@@ -45,6 +45,7 @@ jobs:
         echo "SPOTIFY_CLIENT_SECRET: ${SPOTIFY_CLIENT_SECRET:0:5}..."
         echo "SPOTIFY_REDIRECT_URI: $SPOTIFY_REDIRECT_URI"
         python -v suggest_spotify.py
+        python suggest_spotify.py
     
     - name: Commit and push if changes
       run: |
