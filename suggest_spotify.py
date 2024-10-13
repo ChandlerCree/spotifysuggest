@@ -129,7 +129,7 @@ def gen_output_file_name():
     
     if 'GITHUB_WORKSPACE' in os.environ:
         # We're running in GitHub Actions
-        directory = os.path.join(os.environ['GITHUB_WORKSPACE'], 'spotify_recommendations')
+        directory = os.path.join(os.environ['GITHUB_WORKSPACE'], 'DailyRecsMarkdown')
     else:
         # We're running locally
         directory = '/Users/ccree/Documents/IRALOGIX/Obsidian/IRALogix/Personal Notes/Spotify Suggestions'
