@@ -5,8 +5,36 @@ on:
     - cron: '0 4 * * *' # Runs at 4am UTC (1am UK time) every day
   workflow_dispatch: # Allows to manually trigger the workflow from the GitHub Actions page
 
+permissions:
+  contents: write
+
 jobs:
+  remove-previous-playlist:
+    runs-on: ubuntu-latest
+    environment: suggest_env
+    steps:
+    - uses: actions/checkout@v2
+    
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.x'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install spotipy python-dotenv
+
+    - name: Remove previous day's playlist
+      env:
+        SPOTIFY_CLIENT_ID: ${{ secrets.SPOTIFY_CLIENT_ID }}
+        SPOTIFY_CLIENT_SECRET: ${{ secrets.SPOTIFY_CLIENT_SECRET }}
+        SPOTIFY_REFRESH_TOKEN: ${{ secrets.SPOTIFY_REFRESH_TOKEN }}
+      run: |
+        python remove_previous_playlist.py
+
   generate-recommendations:
+    needs: remove-previous-playlist
     runs-on: ubuntu-latest
     environment: suggest_env
     steps:
@@ -38,18 +66,20 @@ jobs:
       env:
         SPOTIFY_CLIENT_ID: ${{ secrets.SPOTIFY_CLIENT_ID }}
         SPOTIFY_CLIENT_SECRET: ${{ secrets.SPOTIFY_CLIENT_SECRET }}
-        SPOTIFY_REDIRECT_URI: 'http://localhost:8888/callback'
+        SPOTIFY_REFRESH_TOKEN: ${{ secrets.SPOTIFY_REFRESH_TOKEN }}
         OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       run: |
-        echo "SPOTIFY_CLIENT_ID: $SPOTIFY_CLIENT_ID"
-        echo "SPOTIFY_CLIENT_SECRET: ${SPOTIFY_CLIENT_SECRET:0:5}..."
-        echo "SPOTIFY_REDIRECT_URI: $SPOTIFY_REDIRECT_URI"
-        python -v suggest_spotify.py
         python suggest_spotify.py
-    
-    - name: Commit and push if changes
+
+    - name: Checkout docs-suggestions-md branch
       run: |
-        git config --global user.name 'GitHub Action'
-        git config --global user.email 'action@github.com'
+        git fetch origin
+        git checkout -B docs-suggestions-md origin/docs-suggestions-md || git checkout -b docs-suggestions-md
+        
+    - name: Commit and push changes to docs-suggestions-md branch
+      run: |
+        git config user.name 'GitHub Action'
+        git config user.email 'action@github.com'
         git add DailyRecsMarkdown/*.md
-        git diff --quiet && git diff --staged --quiet || (git commit -m "Update Spotify recommendations" && git push)
+        git commit -m "Update Spotify recommendations for $(date +'%Y-%m-%d')"
+        git push origin docs-suggestions-md
