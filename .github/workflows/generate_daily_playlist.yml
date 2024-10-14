@@ -38,10 +38,12 @@ jobs:
     runs-on: ubuntu-latest
     environment: suggest_env
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
     
     - name: Set up Python
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v4
       with:
         python-version: '3.x'
     
@@ -49,18 +51,7 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
-    
-    - name: Debug environment
-      run: |
-        echo "Current directory: $(pwd)"
-        echo "Directory contents:"
-        ls -la
-        echo "Python version:"
-        python --version
-        echo "Python path:"
-        which python
-        echo "suggest_spotify.py contents:"
-        cat suggest_spotify.py
+  
     
     - name: Run Spotify recommendation script
       env:
@@ -69,48 +60,18 @@ jobs:
         SPOTIFY_REFRESH_TOKEN: ${{ secrets.SPOTIFY_REFRESH_TOKEN }}
         OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       run: |
-        echo "SPOTIFY_CLIENT_ID: $SPOTIFY_CLIENT_ID"
-        echo "SPOTIFY_CLIENT_SECRET: ${SPOTIFY_CLIENT_SECRET:0:5}..."
-        echo "SPOTIFY_REFRESH_TOKEN: ${SPOTIFY_REFRESH_TOKEN:0:5}..."
-        python -v suggest_spotify.py
-    
-    - name: Commit and push if changes
+        python suggest_spotify.py
+
+    - name: Checkout and update docs-suggestions-md branch
       run: |
-        git config --global user.name 'GitHub Action'
-        git config --global user.email 'action@github.com'
         git fetch origin
-        git checkout -b spotify-recs-update
+        git checkout -B docs-suggestions-md origin/docs-suggestions-md || git checkout -b docs-suggestions-md
+        git pull origin docs-suggestions-md --rebase || true
+        
+    - name: Commit and push changes to docs-suggestions-md branch
+      run: |
+        git config user.name 'GitHub Action'
+        git config user.email 'action@github.com'
         git add DailyRecsMarkdown/*.md
-        if git diff --staged --quiet; then
-          echo "No changes to commit"
-        else
-          echo "Changes to commit"
-          git commit -m "Update Spotify recommendations"
-          git push -f origin spotify-recs-update
-          echo "Changes pushed to origin"
-        fi
-
-    - name: Debug - Show git status
-      run: |
-        git status
-        git diff
-
-    - name: Debug - Show file content
-      run: |
-        cat DailyRecsMarkdown/Spotify\ Recs\ -\ 10-14-24.md
-
-    - name: Create Pull Request
-      uses: peter-evans/create-pull-request@v5
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
-        commit-message: Update Spotify recommendations
-        title: 'Update Spotify recommendations'
-        body: 'Automatically generated Spotify recommendations'
-        branch: spotify-recs-update
-        base: main
-        delete-branch: true
-
-    - name: Debug - Show git status after push
-      run: |
-        git status
-        git diff origin/main
+        git commit -m "Update Spotify recommendations for $(date +'%Y-%m-%d')" || echo "No changes to commit"
+        git push --force origin docs-suggestions-md
