@@ -18,19 +18,27 @@ import sys
 
 load_dotenv()
 
-# Set up the Spotify API client
+print("Setting up Spotify client...")
 client_id = os.getenv('SPOTIFY_CLIENT_ID')
 client_secret = os.getenv('SPOTIFY_CLIENT_SECRET')
-redirect_uri = 'http://localhost:8888/callback'  # or your chosen redirect URI
+refresh_token = os.getenv('SPOTIFY_REFRESH_TOKEN')
 
-# Create a SpotifyOAuth object
+if not client_id or not client_secret or not refresh_token:
+    print("Error: Spotify credentials are not set properly.")
+    sys.exit(1)
+
+redirect_uri = 'http://localhost:8888/callback'
+scope = 'user-top-read user-read-recently-played user-library-read playlist-modify-private playlist-modify-public'
+
 sp_oauth = SpotifyOAuth(client_id=client_id, 
                         client_secret=client_secret, 
                         redirect_uri=redirect_uri, 
-                        scope='user-top-read user-read-recently-played user-library-read playlist-modify-private playlist-modify-public')
+                        scope=scope)
 
-# Create a Spotify object
-sp = spotipy.Spotify(auth_manager=sp_oauth)
+token_info = sp_oauth.refresh_access_token(refresh_token)
+sp = spotipy.Spotify(auth=token_info['access_token'])
+
+print("Spotify client set up successfully.")
 
 # Get the user's Spotify username
 username = sp.current_user()['id']
