@@ -19,6 +19,7 @@ This README provides instructions on how to set up and run the Spotify suggestio
 7. Note down your Client ID and Client Secret (you'll need these later).
 
 ## 2. Setting up OpenAI Account
+#### This is an optional configuration. If skipped there will be no playlist description.
 
 1. Go to the [OpenAI website](https://openai.com/) and sign up for an account.
 2. Once logged in, navigate to the [API keys page](https://platform.openai.com/account/api-keys).
@@ -76,12 +77,14 @@ This README provides instructions on how to set up and run the Spotify suggestio
    SPOTIFY_CLIENT_ID=your_spotify_client_id_here
    SPOTIFY_CLIENT_SECRET=your_spotify_client_secret_here
    OPENAI_API_KEY=your_openai_api_key_here
+   SPOTIFY_REFRESH_TOKEN=your_spotify_refresh_token_here
+   PERSONAL_ACCESS_TOKEN=your_github_personal_access_token_here
    ```
-3. Replace the placeholder values with your actual API credentials.
+3. Replace the placeholder values with your actual API/secret credentials.
 
 ## 6. Creating a Virtual Environment
 
-The `run_spotifyhelper.sh` script will handle creating and activating the virtual environment for you. However, if you need to create it manually:
+The `run_spotifyhelper.sh` script will handle the activation of the virtual environment and installation of packages for you. However, **you will need to create the environment manually**:
 
 ### Windows
 
@@ -134,6 +137,7 @@ If you're on Windows or prefer to run the steps manually:
 - `run_spotifyhelper.sh`: Shell script to set up the environment and run the main script.
 - `requirements.txt`: List of Python packages required for the project.
 - `.env`: File containing your Spotify and OpenAI API credentials (you need to create this).
+- TODO: add other files i.e. (Refresh token)
 
 ## How It Works
 
