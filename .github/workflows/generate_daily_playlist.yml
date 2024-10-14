@@ -57,9 +57,15 @@ jobs:
       run: |
         git config --global user.name 'GitHub Action'
         git config --global user.email 'action@github.com'
+        git fetch origin
         git checkout -b spotify-recs-update
         git add DailyRecsMarkdown/*.md
-        git diff --quiet && git diff --staged --quiet || (git commit -m "Update Spotify recommendations" && git push origin spotify-recs-update)
+        if git diff --staged --quiet; then
+          echo "No changes to commit"
+        else
+          git commit -m "Update Spotify recommendations"
+          git push -f origin spotify-recs-update
+        fi
 
     - name: Create Pull Request
       uses: peter-evans/create-pull-request@v5
@@ -70,3 +76,4 @@ jobs:
         body: 'Automatically generated Spotify recommendations'
         branch: spotify-recs-update
         base: main
+        delete-branch: true
