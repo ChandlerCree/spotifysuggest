@@ -84,8 +84,10 @@ jobs:
         if git diff --staged --quiet; then
           echo "No changes to commit"
         else
+          echo "Changes to commit"
           git commit -m "Update Spotify recommendations"
           git push -f origin spotify-recs-update
+          echo "Changes pushed to origin"
         fi
 
     - name: Debug - Show git status
