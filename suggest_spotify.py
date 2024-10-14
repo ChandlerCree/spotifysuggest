@@ -88,7 +88,11 @@ def create_top_songs_dict(top_tracks, recently_played, top_artists, recommendati
     }
 
 def get_chatbot_analysis(top_songs):
-    client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+    openai_api_key = os.getenv('OPENAI_API_KEY')
+    if not openai_api_key:
+        return None  # Return None if OPENAI_API_KEY is not set
+
+    client = OpenAI(api_key=openai_api_key)
     
     prompt = f"""
     Based on the following user's Spotify data, analyze their music preferences and the recommended songs:
@@ -165,9 +169,9 @@ def write_file(top_songs, playlist_url, chatbot_analysis):
         f.write(f"## Today's Playlist\n\n")
         f.write(f"[Click here to open today's playlist]({playlist_url})\n\n")
         
-        # Add chatbot analysis
-        f.write("## Music Preference Analysis\n\n")
-        f.write(f"{chatbot_analysis}\n\n")
+        if chatbot_analysis:
+            f.write("## Music Preference Analysis\n\n")
+            f.write(f"{chatbot_analysis}\n\n")
         
         for category in category_order:
             items = top_songs[category]
@@ -195,14 +199,14 @@ def create_playlist(sp, recommendations, chatbot_analysis):
     track_uris = [rec['track_link'].replace('spotify:track:', '') for rec in recommendations]
     sp.user_playlist_add_tracks(username, playlist['id'], track_uris)
     
-    # Try to update playlist description with chatbot analysis
-    try:
-        # Truncate the description if it's too long (Spotify has a 300 character limit)
-        truncated_analysis = chatbot_analysis[:297] + '...' if len(chatbot_analysis) > 300 else chatbot_analysis
-        sp.user_playlist_change_details(username, playlist['id'], description=truncated_analysis)
-    except spotipy.exceptions.SpotifyException as e:
-        print(f"Failed to update playlist description: {e}")
-        print("Continuing without setting the description.")
+    # Try to update playlist description with chatbot analysis only if it exists
+    if chatbot_analysis:
+        try:
+            truncated_analysis = chatbot_analysis[:297] + '...' if len(chatbot_analysis) > 300 else chatbot_analysis
+            sp.user_playlist_change_details(username, playlist['id'], description=truncated_analysis)
+        except spotipy.exceptions.SpotifyException as e:
+            print(f"Failed to update playlist description: {e}")
+            print("Continuing without setting the description.")
     
     # Add a retry mechanism for getting the playlist URL
     max_retries = 5
@@ -232,12 +236,14 @@ def runner_suggest_spotify():
         # Create the top_songs dictionary using the new function
         top_songs = create_top_songs_dict(top_tracks, recently_played, top_artists, recommendations)
 
-        # Get chatbot analysis
-        chatbot_analysis = get_chatbot_analysis(top_songs)
-        print(chatbot_analysis)
+        # Get chatbot analysis only if OPENAI_API_KEY is set
+        chatbot_analysis = get_chatbot_analysis(top_songs) if os.getenv('OPENAI_API_KEY') else None
+        if chatbot_analysis:
+            print(chatbot_analysis)
+        else:
+            print("Skipping AI description generation as OPENAI_API_KEY is not set.")
 
         # Create a playlist with the recommendations and get chatbot analysis
-        
         playlist_url = create_playlist(sp, recommendations, chatbot_analysis)
 
         write_file(top_songs, playlist_url, chatbot_analysis)
