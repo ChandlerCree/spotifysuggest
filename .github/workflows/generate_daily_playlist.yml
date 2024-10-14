@@ -88,6 +88,15 @@ jobs:
           git push -f origin spotify-recs-update
         fi
 
+    - name: Debug - Show git status
+      run: |
+        git status
+        git diff
+
+    - name: Debug - Show file content
+      run: |
+        cat DailyRecsMarkdown/Spotify\ Recs\ -\ 10-14-24.md
+
     - name: Create Pull Request
       uses: peter-evans/create-pull-request@v5
       with:
@@ -98,3 +107,8 @@ jobs:
         branch: spotify-recs-update
         base: main
         delete-branch: true
+
+    - name: Debug - Show git status after push
+      run: |
+        git status
+        git diff origin/main
