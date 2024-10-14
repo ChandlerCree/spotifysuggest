@@ -39,6 +39,8 @@ jobs:
     environment: suggest_env
     steps:
     - uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
     
     - name: Set up Python
       uses: actions/setup-python@v4
@@ -64,7 +66,7 @@ jobs:
       run: |
         git fetch origin
         git checkout -B docs-suggestions-md origin/docs-suggestions-md || git checkout -b docs-suggestions-md
-        git pull origin docs-suggestions-md || true
+        git pull origin docs-suggestions-md --rebase || true
         
     - name: Commit and push changes to docs-suggestions-md branch
       run: |
@@ -72,4 +74,4 @@ jobs:
         git config user.email 'action@github.com'
         git add DailyRecsMarkdown/*.md
         git commit -m "Update Spotify recommendations for $(date +'%Y-%m-%d')" || echo "No changes to commit"
-        git push origin docs-suggestions-md
+        git push --force origin docs-suggestions-md
