@@ -5,6 +5,9 @@ on:
     - cron: '0 4 * * *' # Runs at 4am UTC (1am UK time) every day
   workflow_dispatch: # Allows to manually trigger the workflow from the GitHub Actions page
 
+permissions:
+  contents: write
+
 jobs:
   generate-recommendations:
     runs-on: ubuntu-latest
@@ -51,10 +54,8 @@ jobs:
         python suggest_spotify.py
     
     - name: Commit and push if changes
-      env:
-        PAT: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
       run: |
         git config --global user.name 'GitHub Action'
         git config --global user.email 'action@github.com'
         git add DailyRecsMarkdown/*.md
-        git diff --quiet && git diff --staged --quiet || (git commit -m "Update Spotify recommendations" && git push https://$PAT@github.com/${{ github.repository }}.git)
+        git diff --quiet && git diff --staged --quiet || (git commit -m "Update Spotify recommendations" && git push)
