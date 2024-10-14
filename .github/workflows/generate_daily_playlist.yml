@@ -44,14 +44,10 @@ jobs:
         SPOTIFY_REFRESH_TOKEN: ${{ secrets.SPOTIFY_REFRESH_TOKEN }}
         OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       run: |
-        echo "step chk1"
         echo "SPOTIFY_CLIENT_ID: $SPOTIFY_CLIENT_ID"
         echo "SPOTIFY_CLIENT_SECRET: ${SPOTIFY_CLIENT_SECRET:0:5}..."
         echo "SPOTIFY_REFRESH_TOKEN: ${SPOTIFY_REFRESH_TOKEN:0:5}..."
-        echo "step chk2"
         python -v suggest_spotify.py
-        echo "step chk3"
-        python suggest_spotify.py
     
     - name: Commit and push if changes
       run: |
