@@ -6,9 +6,6 @@ print(f"Python path: {sys.executable}")
 
 import os
 print(f"Current working directory: {os.getcwd()}")
-print("Environment variables:")
-for key, value in os.environ.items():
-    print(f"{key}: {'*' * len(value) if 'SECRET' in key else value}")
 
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
