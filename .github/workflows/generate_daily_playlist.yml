@@ -41,10 +41,13 @@ jobs:
         SPOTIFY_REDIRECT_URI: 'http://localhost:8888/callback'
         OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       run: |
+        echo "step chk1"
         echo "SPOTIFY_CLIENT_ID: $SPOTIFY_CLIENT_ID"
         echo "SPOTIFY_CLIENT_SECRET: ${SPOTIFY_CLIENT_SECRET:0:5}..."
         echo "SPOTIFY_REDIRECT_URI: $SPOTIFY_REDIRECT_URI"
+        echo "step chk2"
         python -v suggest_spotify.py
+        echo "step chk3"
         python suggest_spotify.py
     
     - name: Commit and push if changes
