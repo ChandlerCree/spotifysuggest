@@ -1,12 +1,83 @@
-# Spotify Suggestion Script Setup
+<div id="readme-top"></div>
 
-This README provides instructions on how to set up and run the Spotify suggestion script, which now includes OpenAI integration for generating playlist descriptions.
+<!-- PROJECT SHIELDS -->
+[![Contributors][contributors-shield]][contributors-url]
+[![Forks][forks-shield]][forks-url]
+[![Stargazers][stars-shield]][stars-url]
+[![Issues][issues-shield]][issues-url]
+[![GPLv3][license-shield]][license-url]
+[![LinkedIn][linkedin-shield]][linkedin-url]
 
+
+
+<!-- PROJECT LOGO -->
+<br />
+<div align="center">
+  <h2 align="center">Spotify Suggest</h2>
+
+  <p align="center">
+    Created by: Chandler Cree
+    <br />
+    <a href="https://github.com/ChandlerCree/spotifysuggest">View Demo</a>
+    ·
+    <a href="https://github.com/ChandlerCree/spotifysuggest/issues">Report Bug</a>
+    ·
+    <a href="https://github.com/ChandlerCree/spotifysuggest/issues">Request Feature</a>
+  </p>
+</div>
+
+
+
+<!-- TABLE OF CONTENTS -->
+<details>
+  <summary>Table of Contents</summary>
+  <ol>
+    <li>
+      <a href="#about-the-project">About The Project</a>
+      <ul>
+        <li><a href="#built-with">Built With</a></li>
+      </ul>
+    </li>
+    <li><a href="#getting-started">Getting Started</a></li>
+    <li><a href="#usage">Usage</a></li>
+    <li><a href="#structure">Structure</a></li>
+    <li><a href="#tasks">Tasks</a></li>
+    <li><a href="#contributing">Contributing</a></li>
+    <li><a href="#license">License</a></li>
+    <li><a href="#contact">Contact</a></li>
+    <li><a href="#acknowledgments">Acknowledgments</a></li>
+  </ol>
+</details>
+
+<!-- ABOUT THE PROJECT -->
+## Problem Statement
+
+Provide a better recommendation system based off of user liked songs and artists.
+
+## About The Project
+
+This is very early stages of the project. Open to contributor. Currently this README is also a wkr in progress. 
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+
+
+### Built With
+
+The main library used in this project is Spotipy. A library that can be installed using pip.
+
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+
+
+<!-- GETTING STARTED -->
 ## Prerequisites
 
 - Python 3.12.7
 - Spotify Developer Account
-- OpenAI Account
+- OpenAI Account (Can be skipped)
+- Spotify Authorization Token
 
 ## 1. Setting up Spotify Developer Dashboard
 
@@ -75,9 +146,12 @@ This README provides instructions on how to set up and run the Spotify suggestio
    ```
    SPOTIFY_CLIENT_ID=your_spotify_client_id_here
    SPOTIFY_CLIENT_SECRET=your_spotify_client_secret_here
-   OPENAI_API_KEY=your_openai_api_key_here
+   # OPENAI_API_KEY=your_openai_api_key_here #uncomment if you have a key
+   SPOTIFY_REFRESH_TOKEN=your_spotify_refresh_token_here
+   
    ```
-3. Replace the placeholder values with your actual API credentials.
+3. Replace the placeholder values with your actual credentials.
+	1. Note this is file with private contents and you should add it to your .gitignore.
 
 ## 6. Creating a Virtual Environment
 
@@ -88,6 +162,7 @@ The `run_spotifyhelper.sh` script will handle creating and activating the virtua
 1. Open Command Prompt.
 2. Navigate to your project directory.
 3. Create a virtual environment:
+	1. Note the current configuration requires the env to be named "spotify_venv".
    ```
    python -m venv spotify_venv
    ```
@@ -97,11 +172,32 @@ The `run_spotifyhelper.sh` script will handle creating and activating the virtua
 1. Open Terminal.
 2. Navigate to your project directory.
 3. Create a virtual environment:
+	1. Note the current configuration requires the env to be named "spotify_venv".
    ```
    python3 -m venv spotify_venv
    ```
 
-## 7. Running the Script
+## 7. Obtain Spotify Refresh Token:
+
+   a. Run the helper script:
+      ```
+      ./run_refreshtokenhelper.sh
+      ```
+
+   b. Follow the prompts:
+      - Visit the provided URL in your browser
+      - Authorize the application
+      - Copy the URL you're redirected to
+
+   c. Paste the redirected URL when prompted in the terminal
+
+   d. Copy the refresh token from the output
+
+   e. Add the refresh token to your `.env` file:
+      ```
+      SPOTIFY_REFRESH_TOKEN=your_refresh_token_here
+      ```
+## 8. Running the Script
 
 To run the script, simply execute the `run_spotifyhelper.sh` file:
 
@@ -128,12 +224,22 @@ If you're on Windows or prefer to run the steps manually:
    python suggest_spotify.py
    ```
 
+
 ## Project Structure
 
-- `suggest_spotify.py`: The main script for generating Spotify suggestions and creating a playlist with an AI-generated description.
-- `run_spotifyhelper.sh`: Shell script to set up the environment and run the main script.
+- `suggest_spotify.py`: The main script for generating Spotify suggestions and creating a playlist with an AI-generated description.
+- `run_spotifyhelper.sh`: Shell script to set up the environment and run the main script.
 - `requirements.txt`: List of Python packages required for the project.
-- `.env`: File containing your Spotify and OpenAI API credentials (you need to create this).
+
+- `.env`: File containing your Spotify and OpenAI API credentials (you need to create this).
+
+- `run_refreshtokenhelper.sh`: Shell script to activate the virtual environment and run the refresh token script.
+
+- `get_refresh_token.py`: Python script to obtain a refresh token from Spotify.
+
+- `README.md`: Documentation file providing setup instructions and project information.
+
+- `LICENSE.txt`: Contains the GNU General Public License version 3.0 (GPLv3) for the project.
 
 ## How It Works
 
@@ -142,7 +248,7 @@ This script does the following:
 1. Fetches your top tracks, recently played tracks, and top artists from Spotify.
 2. Uses this data to get recommendations for new tracks.
 3. Creates a new playlist with these recommended tracks.
-4. Uses OpenAI's GPT model to analyze your music preferences and generate a description for the playlist.
+4. Uses OpenAI's GPT model to analyze your music preferences and generate a description for the playlist. (If OpenAI is linked)
 5. Sets the AI-generated description as the playlist description on Spotify.
 6. Saves all this information to a markdown file for your reference.
 
@@ -163,3 +269,95 @@ For any other problems, please check the error message and consult the Spotify A
 ## Note on API Usage
 
 Be aware that using the OpenAI API incurs costs based on your usage. Make sure to review OpenAI's pricing structure and set up appropriate usage limits in your OpenAI account settings to avoid unexpected charges.
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+
+
+<!-- USAGE EXAMPLES -->
+## Usage
+
+TBD.
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+<!-- STRUCTURE -->
+## Structure
+
+*TBD.*
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+<!-- TASKS -->
+## Tasks
+
+By publicly displaying the to-do list of the project, users are able to see any feature that is nearing implementation. The list also allows new developers to quickly find potential tasks for them to complete which is an ideal way to familiarize them with the source code and to continue to make commits.
+
+- [ ] TBD
+
+See the [open issues](https://github.com/ChandlerCree/suggestspotify/issues) for a full list of issues and proposed features.
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+
+
+<!-- CONTRIBUTING -->
+## Contributing
+
+Contributions are open and requested. Please take advantage of the open source code and 
+
+1. [Fork the Project](https://docs.github.com/en/get-started/quickstart/fork-a-repo)
+2. Create your Feature Branch (`git checkout -b f/AmazingFeature`)
+3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the Branch (`git push origin f/AmazingFeature`)
+5. [Open a Pull Request](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/about-pull-requests)
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+
+
+<!-- LICENSE -->
+## License
+
+*Documentation must include a license section in which the type of license and a link or reference to the full license in the repository is given.*
+
+Distributed under the GPL-3.0 license . See `LICENSE.txt` for more information.
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+
+
+<!-- CONTACT -->
+## Contact
+
+Michael Montanaro - [LinkedIn](https://www.linkedin.com/in/chandlercree/) - chandlercreegk@gmail.com
+
+Project Link: [https://github.com/ChandlerCree/spotifysuggest](https://github.com/ChandlerCree/spotifysuggest)
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+
+
+<!-- ACKNOWLEDGMENTS -->
+## Acknowledgments
+
+Use this space to list any resources used or that may be helpful in understanding the project
+
+* [Spotify Developer](https://developer.spotify.com/)
+
+<p align="right">(<a href="#readme-top">back to top</a>)</p>
+
+
+
+<!-- MARKDOWN LINKS & IMAGES -->
+<!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
+[contributors-shield]: https://img.shields.io/github/contributors/ChandlerCree/suggestspotify.svg?style=for-the-badge
+[contributors-url]: https://github.com/ChandlerCree/suggestspotify/graphs/contributors
+[forks-shield]: https://img.shields.io/github/forks/ChandlerCree/suggestspotify.svg?style=for-the-badge
+[forks-url]: https://github.com/ChandlerCree/suggestspotify/network/members
+[stars-shield]: https://img.shields.io/github/stars/ChandlerCree/suggestspotify.svg?style=for-the-badge
+[stars-url]: https://github.com/ChandlerCree/suggestspotify/stargazers
+[issues-shield]: https://img.shields.io/github/issues/ChandlerCree/suggestspotify.svg?style=for-the-badge
+[issues-url]: https://github.com/ChandlerCree/suggestspotify/issues
+[license-shield]: https://img.shields.io/github/license/ChandlerCree/suggestspotify.svg?style=for-the-badge
+[license-url]: https://github.com/ChandlerCree/suggestspotify/blob/master/LICENSE.txt
+[linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=for-the-badge&logo=linkedin&colorB=555
