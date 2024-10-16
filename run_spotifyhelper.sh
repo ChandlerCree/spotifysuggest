@@ -1,12 +1,28 @@
 #!/bin/bash
 
+
+# Set the project directory to the current working directory
+export SPOTIFY_PROJECT_DIR="$(pwd)"
+
 # Check if we're running in GitHub Actions
 if [ -n "$GITHUB_ACTIONS" ]; then
     # We're in GitHub Actions, so we don't need to activate a virtual environment
     # or load the .env file (we use secrets instead)
     python3 suggest_spotify.py
 else
-    # We're running locally, so use the existing script
+
+    # Check if the virtual environment already exists
+    if [ ! -d "spotify_venv" ]; then
+        python3 -m venv spotify_venv
+        echo "Virtual environment created."
+    else
+        echo "Virtual environment already exists."
+    fi
+
+    # Make the virtual environment executable
+    chmod +x spotify_venv/bin/activate
+
+    # Activate the virtual environment
     source spotify_venv/bin/activate
 
     # Install the dependencies
@@ -31,3 +47,6 @@ else
     # Deactivate the virtual environment
     deactivate
 fi
+
+# Unset the project directory environment variable
+unset SPOTIFY_PROJECT_DIR

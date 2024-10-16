@@ -149,8 +149,9 @@ def gen_output_file_name():
         # We're running in GitHub Actions
         directory = os.path.join(os.environ['GITHUB_WORKSPACE'], 'DailyRecsMarkdown')
     else:
-        # We're running locally
-        directory = '/Users/ccree/Documents/IRALOGIX/Obsidian/IRALogix/Personal Notes/Spotify Suggestions'
+        # We're running locally, use the new environment variable
+        project_dir = os.getenv('SPOTIFY_PROJECT_DIR')
+        directory = os.path.join(project_dir, 'Spotify Suggestions')
 
     os.makedirs(directory, exist_ok=True)
     return os.path.join(directory, filename)
