@@ -2,3 +2,4 @@ spotify_venv/
 .env 
 .cache
 openai.secret
+README_temp.md
