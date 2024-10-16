@@ -54,7 +54,7 @@ jobs:
         print('step 1')
 
         try:
-            playlists = sp.current_user_playlists()
+            playlists = sp.current_user_playlists(limit=50)
             for playlist in playlists['items']:
                 print(f"Playlist: {playlist['name']}")
         except Exception as e:
