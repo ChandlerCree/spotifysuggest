@@ -61,7 +61,6 @@ jobs:
             print(f"An error occurred: {str(e)}")
 
         print('step 2')
-        "
         EOF
 
     - name: Remove previous day's playlist
