@@ -36,17 +36,29 @@ jobs:
         from spotipy.oauth2 import SpotifyOAuth
         import os
         print(os.getenv('SPOTIFY_CLIENT_ID'))
-        sp = spotipy.Spotify(auth_manager=SpotifyOAuth(
+        print(os.getenv('SPOTIFY_REFRESH_TOKEN'))  # Add this line to check if the refresh token is set
+
+        auth_manager = SpotifyOAuth(
             client_id=os.getenv('SPOTIFY_CLIENT_ID'),
             client_secret=os.getenv('SPOTIFY_CLIENT_SECRET'),
             redirect_uri='http://localhost:8888/callback',
-            scope='playlist-read-private playlist-modify-private playlist-modify-public'
-        ))
+            scope='playlist-read-private playlist-modify-private playlist-modify-public',
+            open_browser=False
+        )
+
+        # Use the refresh token to get an access token
+        token_info = auth_manager.refresh_access_token(os.getenv('SPOTIFY_REFRESH_TOKEN'))
+        sp = spotipy.Spotify(auth=token_info['access_token'])
+
         print('step 1')
 
-        playlists = sp.current_user_playlists()
-        for playlist in playlists['items']:
-            print(f'Playlist: {playlist['name']}')
+        try:
+            playlists = sp.current_user_playlists()
+            for playlist in playlists['items']:
+                print(f"Playlist: {playlist['name']}")
+        except Exception as e:
+            print(f"An error occurred: {str(e)}")
+
         print('step 2')
         "
 
