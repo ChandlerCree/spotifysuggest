@@ -9,70 +9,7 @@ permissions:
   contents: write
 
 jobs:
-  remove-previous-playlist:
-    runs-on: ubuntu-latest
-    environment: suggest_env
-    steps:
-    - uses: actions/checkout@v2
-    
-    - name: Set up Python
-      uses: actions/setup-python@v2
-      with:
-        python-version: '3.x'
-    
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install spotipy python-dotenv
-
-    - name: Debug - List Playlists
-      env:
-        SPOTIFY_CLIENT_ID: ${{ secrets.SPOTIFY_CLIENT_ID }}
-        SPOTIFY_CLIENT_SECRET: ${{ secrets.SPOTIFY_CLIENT_SECRET }}
-        SPOTIFY_REFRESH_TOKEN: ${{ secrets.SPOTIFY_REFRESH_TOKEN }}
-      run: |
-        python3 << EOF
-        import spotipy
-        from spotipy.oauth2 import SpotifyOAuth
-        import os
-
-        print(os.getenv('SPOTIFY_CLIENT_ID'))
-        print(os.getenv('SPOTIFY_REFRESH_TOKEN'))
-
-        auth_manager = SpotifyOAuth(
-            client_id=os.getenv('SPOTIFY_CLIENT_ID'),
-            client_secret=os.getenv('SPOTIFY_CLIENT_SECRET'),
-            redirect_uri='http://localhost:8888/callback',
-            scope='playlist-read-private playlist-modify-private playlist-modify-public',
-            open_browser=False
-        )
-
-        # Use the refresh token to get an access token
-        token_info = auth_manager.refresh_access_token(os.getenv('SPOTIFY_REFRESH_TOKEN'))
-        sp = spotipy.Spotify(auth=token_info['access_token'])
-
-        print('step 1')
-
-        try:
-            playlists = sp.current_user_playlists(limit=50)
-            for playlist in playlists['items']:
-                print(f"Playlist: {playlist['name']}")
-        except Exception as e:
-            print(f"An error occurred: {str(e)}")
-
-        print('step 2')
-        EOF
-
-    - name: Remove previous day's playlist
-      env:
-        SPOTIFY_CLIENT_ID: ${{ secrets.SPOTIFY_CLIENT_ID }}
-        SPOTIFY_CLIENT_SECRET: ${{ secrets.SPOTIFY_CLIENT_SECRET }}
-        SPOTIFY_REFRESH_TOKEN: ${{ secrets.SPOTIFY_REFRESH_TOKEN }}
-      run: |
-        python remove_previous_playlist.py
-
   generate-recommendations:
-    needs: remove-previous-playlist
     runs-on: ubuntu-latest
     environment: suggest_env
     steps:
@@ -89,7 +26,6 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
-  
     
     - name: Run Spotify recommendation script
       env:

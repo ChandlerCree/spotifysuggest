@@ -187,9 +187,24 @@ def write_file(top_songs, playlist_url, chatbot_analysis):
     print(f"Spotify suggestions have been written to {file_path}")
     print(f"A new playlist has been created: {playlist_url}")
 
+def get_or_create_folder(sp, username, folder_name):
+    playlists = sp.user_playlists(username)
+    folder = next((playlist for playlist in playlists['items'] if playlist['name'] == folder_name), None)
+    
+    if folder is None:
+        folder = sp.user_playlist_create(username, folder_name, public=False)
+        print(f"Created new folder: {folder_name}")
+    else:
+        print(f"Found existing folder: {folder_name}")
+    
+    return folder['id']
+
 def create_playlist(sp, recommendations, chatbot_analysis):
     # Get the user's Spotify username
     username = sp.current_user()['id']
+    
+    # Get or create the "Top Daily!" folder
+    folder_id = get_or_create_folder(sp, username, "Top Daily!")
     
     # Create a new playlist
     current_date = datetime.now().strftime("%m-%d-%y")
@@ -208,6 +223,9 @@ def create_playlist(sp, recommendations, chatbot_analysis):
         except spotipy.exceptions.SpotifyException as e:
             print(f"Failed to update playlist description: {e}")
             print("Continuing without setting the description.")
+    
+    # Add the new playlist to the "Top Daily!" folder
+    sp.user_playlist_add_tracks(username, folder_id, [f"spotify:playlist:{playlist['id']}"])
     
     # Add a retry mechanism for getting the playlist URL
     max_retries = 5
