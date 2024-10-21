@@ -192,54 +192,59 @@ def get_or_create_folder(sp, username, folder_name):
     folder = next((playlist for playlist in playlists['items'] if playlist['name'] == folder_name), None)
     
     if folder is None:
-        folder = sp.user_playlist_create(username, folder_name, public=False)
-        print(f"Created new folder: {folder_name}")
+        folder = sp.user_playlist_create(username, folder_name, public=False, description="Folder for daily recommendation playlists")
+        print(f"Created new folder playlist: {folder_name} with ID: {folder['id']}")
     else:
-        print(f"Found existing folder: {folder_name}")
+        print(f"Found existing folder playlist: {folder_name} with ID: {folder['id']}")
     
     return folder['id']
 
 def create_playlist(sp, recommendations, chatbot_analysis):
-    # Get the user's Spotify username
-    username = sp.current_user()['id']
-    
-    # Get or create the "Top Daily!" folder
-    folder_id = get_or_create_folder(sp, username, "Top Daily!")
-    
-    # Create a new playlist
-    current_date = datetime.now().strftime("%m-%d-%y")
-    playlist_name = f'Daily Recommendations {current_date}'
-    playlist = sp.user_playlist_create(username, playlist_name, public=False)
-    
-    # Add tracks to the playlist
-    track_uris = [rec['track_link'].replace('spotify:track:', '') for rec in recommendations]
-    sp.user_playlist_add_tracks(username, playlist['id'], track_uris)
-    
-    # Try to update playlist description with chatbot analysis only if it exists
-    if chatbot_analysis:
+    try:
+        # Get the user's Spotify username
+        username = sp.current_user()['id']
+        print(f"Current user: {username}")
+        
+        # Get or create the "Top Daily!" folder playlist
+        folder_id = get_or_create_folder(sp, username, "Top Daily!")
+        print(f"Folder playlist ID: {folder_id}")
+        
+        # Create a new playlist
+        current_date = datetime.now().strftime("%m-%d-%y")
+        playlist_name = f'Daily Recommendations {current_date}'
+        playlist = sp.user_playlist_create(username, playlist_name, public=False)
+        print(f"Created playlist: {playlist_name} with ID: {playlist['id']}")
+        
+        # Add tracks to the playlist
+        track_uris = [rec['track_link'].replace('spotify:track:', '') for rec in recommendations]
+        sp.user_playlist_add_tracks(username, playlist['id'], track_uris)
+        print(f"Added {len(track_uris)} tracks to the playlist")
+        
+        # Try to update playlist description with chatbot analysis only if it exists
+        if chatbot_analysis:
+            try:
+                truncated_analysis = chatbot_analysis[:297] + '...' if len(chatbot_analysis) > 300 else chatbot_analysis
+                sp.user_playlist_change_details(username, playlist['id'], description=truncated_analysis)
+                print("Updated playlist description")
+            except spotipy.exceptions.SpotifyException as e:
+                print(f"Failed to update playlist description: {e}")
+                print("Continuing without setting the description.")
+        
+        # Add the new playlist to the "Top Daily!" folder playlist
         try:
-            truncated_analysis = chatbot_analysis[:297] + '...' if len(chatbot_analysis) > 300 else chatbot_analysis
-            sp.user_playlist_change_details(username, playlist['id'], description=truncated_analysis)
+            sp.user_playlist_add_tracks(username, folder_id, [playlist['uri']])
+            print(f"Added playlist {playlist_name} to Top Daily! folder playlist")
         except spotipy.exceptions.SpotifyException as e:
-            print(f"Failed to update playlist description: {e}")
-            print("Continuing without setting the description.")
-    
-    # Add the new playlist to the "Top Daily!" folder
-    sp.user_playlist_add_tracks(username, folder_id, [f"spotify:playlist:{playlist['id']}"])
-    
-    # Add a retry mechanism for getting the playlist URL
-    max_retries = 5
-    retry_delay = 15
-    for attempt in range(max_retries):
-        try:
-            playlist_url = sp.playlist(playlist['id'])['external_urls']['spotify']
-            return playlist_url
-        except Exception as e:
-            if attempt < max_retries - 1:
-                print(f"Attempt {attempt + 1} to get playlist URL failed. Retrying in {retry_delay} seconds...")
-                time.sleep(retry_delay)
-            else:
-                raise Exception("Failed to get playlist URL after 5 attempts") from e
+            print(f"Failed to add playlist to Top Daily! folder playlist: {e}")
+            print(f"Folder playlist ID: {folder_id}, Playlist URI: {playlist['uri']}")
+        
+        # Get the playlist URL
+        playlist_url = sp.playlist(playlist['id'])['external_urls']['spotify']
+        print(f"Playlist URL: {playlist_url}")
+        return playlist_url
+    except Exception as e:
+        print(f"An error occurred in create_playlist: {str(e)}")
+        raise
 
 def runner_suggest_spotify():
     try:
